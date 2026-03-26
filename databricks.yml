@@ -1,0 +1,30 @@
+bundle:
+  name: pzu_dev_lifecycle_demo
+
+include:
+  - resources/*.yml
+
+variables:
+  target_catalog:
+    description: The target catalog to write to.
+    default: serverless_stable_379d9b_catalog
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://fevm-serverless-stable-379d9b.cloud.databricks.com
+
+  staging:
+    presets:
+      name_prefix: stg_
+    workspace:
+      host: https://fevm-serverless-stable-379d9b.cloud.databricks.com
+      root_path: /Users/adam.aboode@databricks.com/.bundle/${bundle.name}/staging
+
+  prod:
+    mode: production
+    workspace:
+      host: https://fevm-serverless-stable-379d9b.cloud.databricks.com
+      root_path: /Users/adam.aboode@databricks.com/.bundle/${bundle.name}/prod

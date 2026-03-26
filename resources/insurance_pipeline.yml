@@ -1,0 +1,76 @@
+resources:
+  pipelines:
+    insurance_pipeline:
+      name: "PZU Insurance Claims Pipeline"
+      target: ${bundle.target}_claims
+      catalog: ${var.target_catalog}
+      libraries:
+        - notebook:
+            path: ../src/pipelines/claims_pipeline.sql
+      continuous: false
+      channel: PREVIEW
+      photon: true
+      serverless: true
+
+  jobs:
+    claims_etl_job:
+      name: "PZU Claims ETL Job"
+      tasks:
+        - task_key: ingest_claims
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingest_claims.py
+            base_parameters:
+              catalog: ${var.target_catalog}
+              schema: ${bundle.target}_claims
+          environment_key: default
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: ingest_claims
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.insurance_pipeline.id}
+            full_refresh: false
+
+        - task_key: quality_check
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../src/notebooks/03_quality_check.py
+            base_parameters:
+              catalog: ${var.target_catalog}
+              schema: ${bundle.target}_claims
+          environment_key: default
+
+        - task_key: build_dashboard_data
+          depends_on:
+            - task_key: quality_check
+          notebook_task:
+            notebook_path: ../src/notebooks/02_analyst_queries.sql
+            base_parameters:
+              catalog: ${var.target_catalog}
+              schema: ${bundle.target}_claims
+          environment_key: default
+
+      queue:
+        enabled: true
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
+            dependencies:
+              - faker
+
+    run_tests:
+      name: "PZU Run Tests"
+      tasks:
+        - task_key: unit_tests
+          notebook_task:
+            notebook_path: ../src/tests/test_transformations.py
+            base_parameters:
+              catalog: ${var.target_catalog}
+              schema: ${bundle.target}_claims
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
