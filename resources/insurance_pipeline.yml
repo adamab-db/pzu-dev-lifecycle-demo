@@ -65,12 +65,11 @@ resources:
       tasks:
         - task_key: unit_tests
           notebook_task:
-            notebook_path: ../src/tests/test_transformations.py
-            base_parameters:
-              catalog: ${var.target_catalog}
-              schema: ${bundle.target}_claims
+            notebook_path: ../src/tests/run_tests.py
           environment_key: default
       environments:
         - environment_key: default
           spec:
             client: "1"
+            dependencies:
+              - pytest

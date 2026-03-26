@@ -1,179 +1,187 @@
-# Databricks notebook source
-# MAGIC %md
-# MAGIC # Unit Tests: Claims Transformations
-# MAGIC
-# MAGIC pytest-style tests validating transformation logic
-# MAGIC and business rules for the claims pipeline.
+"""
+Unit tests for claims transformation logic.
+Uses pytest with fake data — no production tables touched.
+"""
 
-# COMMAND ----------
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql.types import (
+    StructType, StructField, StringType, DoubleType, DateType, IntegerType, TimestampType,
+)
+from datetime import date, datetime
+import sys, os
 
-dbutils.widgets.text("catalog", "serverless_stable_379d9b_catalog")
-dbutils.widgets.text("schema", "dev_claims")
+# Add helpers to path — handle both local runs and workspace runs
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+except NameError:
+    pass  # __file__ not available in notebook context; runner notebook handles sys.path
 
-catalog = dbutils.widgets.get("catalog")
-schema = dbutils.widgets.get("schema")
+from helpers.transformations import (
+    clean_claims,
+    aggregate_claims,
+    filter_high_value,
+    validate_claim_ids,
+    validate_claim_types,
+    VALID_CLAIM_TYPES,
+)
 
-# COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Test Setup
+@pytest.fixture(scope="module")
+def spark():
+    return SparkSession.builder.appName("unit-tests").getOrCreate()
 
-# COMMAND ----------
 
-import json
+@pytest.fixture(scope="module")
+def raw_claims_schema():
+    return StructType([
+        StructField("claim_id", StringType(), True),
+        StructField("policy_id", StringType(), True),
+        StructField("customer_name", StringType(), True),
+        StructField("claim_type", StringType(), True),
+        StructField("claim_amount", DoubleType(), True),
+        StructField("claim_date", DateType(), True),
+        StructField("region", StringType(), True),
+        StructField("status", StringType(), True),
+        StructField("priority", StringType(), True),
+        StructField("processing_days", IntegerType(), True),
+        StructField("description", StringType(), True),
+        StructField("ingested_at", TimestampType(), True),
+    ])
 
-test_results = []
 
-def test(name):
-    """Simple test decorator that captures pass/fail."""
-    def decorator(func):
-        try:
-            func()
-            test_results.append({"test": name, "status": "PASSED"})
-            print(f"  PASSED: {name}")
-        except AssertionError as e:
-            test_results.append({"test": name, "status": "FAILED", "error": str(e)})
-            print(f"  FAILED: {name} — {e}")
-        except Exception as e:
-            test_results.append({"test": name, "status": "ERROR", "error": str(e)})
-            print(f"  ERROR:  {name} — {e}")
-    return decorator
+@pytest.fixture(scope="module")
+def sample_claims(spark, raw_claims_schema):
+    """Create a small fake dataset mimicking bronze claims."""
+    data = [
+        ("CLM-000001", "POL-000001", "Jan Kowalski", "Motor", 5000.0,
+         date(2025, 6, 15), "Mazowieckie", "Open", "Medium", 10, "Fender bender", datetime.now()),
+        ("CLM-000002", "POL-000002", "Anna Nowak", "Health", 1200.0,
+         date(2025, 7, 20), "Slaskie", "Approved", "Low", 5, "Routine checkup", datetime.now()),
+        ("CLM-000003", "POL-000003", "Piotr Wisniewski", "Life", 250000.0,
+         date(2025, 8, 1), "Pomorskie", "In Review", "High", 30, "Life insurance claim", datetime.now()),
+        ("CLM-000004", "POL-000004", "Maria Kaminska", "Motor", 75000.0,
+         date(2025, 9, 10), "Malopolskie", "Paid", "Medium", 15, "Collision damage", datetime.now()),
+    ]
+    return spark.createDataFrame(data, raw_claims_schema)
 
-# COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Schema Validation Tests
+@pytest.fixture(scope="module")
+def dirty_claims(spark, raw_claims_schema):
+    """Claims with quality issues that should be filtered out."""
+    data = [
+        # Valid
+        ("CLM-000010", "POL-000010", "Good Claim", "Motor", 5000.0,
+         date(2025, 6, 15), "Mazowieckie", "Open", "Low", 10, "OK", datetime.now()),
+        # Null claim_id
+        (None, "POL-000011", "Null ID", "Motor", 3000.0,
+         date(2025, 6, 16), "Slaskie", "Open", "Low", 5, "Bad", datetime.now()),
+        # Negative amount
+        ("CLM-000012", "POL-000012", "Neg Amount", "Health", -500.0,
+         date(2025, 6, 17), "Pomorskie", "Open", "Low", 3, "Bad", datetime.now()),
+        # Null region
+        ("CLM-000013", "POL-000013", "Null Region", "Life", 10000.0,
+         date(2025, 6, 18), None, "Open", "Low", 7, "Bad", datetime.now()),
+        # Null claim_date
+        ("CLM-000014", "POL-000014", "Null Date", "Travel", 2000.0,
+         None, "Lodzkie", "Open", "Low", 2, "Bad", datetime.now()),
+    ]
+    return spark.createDataFrame(data, raw_claims_schema)
 
-# COMMAND ----------
 
-print("=" * 50)
-print("SCHEMA VALIDATION")
-print("=" * 50)
+# --- clean_claims tests ---
 
-@test("Bronze table has expected columns")
-def _():
-    cols = set(spark.table(f"{catalog}.{schema}.claims_bronze").columns)
-    expected = {"claim_id", "policy_id", "customer_name", "claim_type",
-                "claim_amount", "claim_date", "region", "status",
-                "priority", "processing_days", "description", "ingested_at"}
-    missing = expected - cols
-    assert not missing, f"Missing columns: {missing}"
+class TestCleanClaims:
+    def test_keeps_valid_rows(self, sample_claims):
+        result = clean_claims(sample_claims)
+        assert result.count() == 4
 
-@test("Silver table has processed_at column")
-def _():
-    cols = spark.table(f"{catalog}.{schema}.claims_silver").columns
-    assert "processed_at" in cols, "processed_at column missing from silver"
+    def test_adds_processed_at_column(self, sample_claims):
+        result = clean_claims(sample_claims)
+        assert "processed_at" in result.columns
 
-@test("Gold summary has aggregation columns")
-def _():
-    cols = set(spark.table(f"{catalog}.{schema}.claims_gold").columns)
-    expected = {"claim_count", "total_amount", "avg_amount", "avg_processing_days"}
-    missing = expected - cols
-    assert not missing, f"Missing columns: {missing}"
+    def test_filters_null_claim_id(self, dirty_claims):
+        result = clean_claims(dirty_claims)
+        null_ids = result.filter("claim_id IS NULL").count()
+        assert null_ids == 0
 
-# COMMAND ----------
+    def test_filters_negative_amounts(self, dirty_claims):
+        result = clean_claims(dirty_claims)
+        neg = result.filter("claim_amount <= 0").count()
+        assert neg == 0
 
-# MAGIC %md
-# MAGIC ## Data Type Tests
+    def test_filters_null_regions(self, dirty_claims):
+        result = clean_claims(dirty_claims)
+        null_regions = result.filter("region IS NULL").count()
+        assert null_regions == 0
 
-# COMMAND ----------
+    def test_filters_null_dates(self, dirty_claims):
+        result = clean_claims(dirty_claims)
+        null_dates = result.filter("claim_date IS NULL").count()
+        assert null_dates == 0
 
-print("=" * 50)
-print("DATA TYPE VALIDATION")
-print("=" * 50)
+    def test_dirty_data_yields_one_valid_row(self, dirty_claims):
+        result = clean_claims(dirty_claims)
+        assert result.count() == 1
 
-@test("claim_amount is numeric")
-def _():
-    dtype = dict(spark.table(f"{catalog}.{schema}.claims_bronze").dtypes)["claim_amount"]
-    assert dtype == "double", f"Expected double, got {dtype}"
 
-@test("claim_date is date type")
-def _():
-    dtype = dict(spark.table(f"{catalog}.{schema}.claims_bronze").dtypes)["claim_date"]
-    assert dtype == "date", f"Expected date, got {dtype}"
+# --- aggregate_claims tests ---
 
-@test("processing_days is integer")
-def _():
-    dtype = dict(spark.table(f"{catalog}.{schema}.claims_bronze").dtypes)["processing_days"]
-    assert "int" in dtype.lower(), f"Expected int, got {dtype}"
+class TestAggregateClaims:
+    def test_output_columns(self, sample_claims):
+        cleaned = clean_claims(sample_claims)
+        result = aggregate_claims(cleaned)
+        expected_cols = {"claim_type", "region", "status", "claim_count",
+                         "total_amount", "avg_amount", "min_amount",
+                         "max_amount", "avg_processing_days"}
+        assert expected_cols.issubset(set(result.columns))
 
-# COMMAND ----------
+    def test_total_amount_reconciles(self, sample_claims):
+        cleaned = clean_claims(sample_claims)
+        agg = aggregate_claims(cleaned)
+        silver_total = cleaned.agg({"claim_amount": "sum"}).collect()[0][0]
+        gold_total = agg.agg({"total_amount": "sum"}).collect()[0][0]
+        assert abs(silver_total - gold_total) < 1.0
 
-# MAGIC %md
-# MAGIC ## Business Rule Tests
+    def test_groups_by_type_region_status(self, sample_claims):
+        cleaned = clean_claims(sample_claims)
+        result = aggregate_claims(cleaned)
+        # 4 claims, all different type/region/status combos → 4 rows
+        assert result.count() == 4
 
-# COMMAND ----------
 
-print("=" * 50)
-print("BUSINESS RULES")
-print("=" * 50)
+# --- filter_high_value tests ---
 
-@test("All claim_ids follow CLM-XXXXXX pattern")
-def _():
-    bad = spark.sql(f"""
-        SELECT COUNT(*) AS cnt FROM {catalog}.{schema}.claims_silver
-        WHERE claim_id NOT LIKE 'CLM-%'
-    """).collect()[0]["cnt"]
-    assert bad == 0, f"{bad} claim_ids don't match pattern"
+class TestFilterHighValue:
+    def test_default_threshold(self, sample_claims):
+        result = filter_high_value(sample_claims)
+        assert result.count() == 1  # Only the 250k Life claim
+        assert result.collect()[0]["claim_id"] == "CLM-000003"
 
-@test("All claim amounts are positive in silver")
-def _():
-    bad = spark.sql(f"""
-        SELECT COUNT(*) AS cnt FROM {catalog}.{schema}.claims_silver
-        WHERE claim_amount <= 0
-    """).collect()[0]["cnt"]
-    assert bad == 0, f"{bad} non-positive amounts found"
+    def test_custom_threshold(self, sample_claims):
+        result = filter_high_value(sample_claims, threshold=10000)
+        assert result.count() == 2  # 250k and 75k
 
-@test("Claim types are from allowed set")
-def _():
-    allowed = {"Motor", "Property", "Health", "Life", "Travel", "Liability"}
-    actual = {r["claim_type"] for r in spark.sql(f"""
-        SELECT DISTINCT claim_type FROM {catalog}.{schema}.claims_silver
-    """).collect()}
-    unexpected = actual - allowed
-    assert not unexpected, f"Unexpected claim types: {unexpected}"
 
-@test("No future claim dates")
-def _():
-    future = spark.sql(f"""
-        SELECT COUNT(*) AS cnt FROM {catalog}.{schema}.claims_silver
-        WHERE claim_date > current_date()
-    """).collect()[0]["cnt"]
-    assert future == 0, f"{future} claims have future dates"
+# --- validation tests ---
 
-@test("Gold totals reconcile with silver")
-def _():
-    gold = spark.sql(f"SELECT SUM(total_amount) AS t FROM {catalog}.{schema}.claims_gold").collect()[0]["t"]
-    silver = spark.sql(f"SELECT SUM(claim_amount) AS t FROM {catalog}.{schema}.claims_silver").collect()[0]["t"]
-    diff = abs(gold - silver)
-    assert diff < 1.0, f"Reconciliation gap: {diff}"
+class TestValidation:
+    def test_valid_claim_ids_pass(self, sample_claims):
+        assert validate_claim_ids(sample_claims) == 0
 
-# COMMAND ----------
+    def test_invalid_claim_ids_detected(self, spark):
+        bad_data = spark.createDataFrame(
+            [("INVALID-1",), ("CLM-000001",), ("BAD",)],
+            ["claim_id"],
+        )
+        assert validate_claim_ids(bad_data) == 2
 
-# MAGIC %md
-# MAGIC ## Test Summary
+    def test_valid_claim_types_pass(self, sample_claims):
+        assert validate_claim_types(sample_claims) == set()
 
-# COMMAND ----------
-
-print("\n" + "=" * 50)
-print("TEST SUMMARY")
-print("=" * 50)
-
-passed = sum(1 for t in test_results if t["status"] == "PASSED")
-failed = sum(1 for t in test_results if t["status"] == "FAILED")
-errors = sum(1 for t in test_results if t["status"] == "ERROR")
-total = len(test_results)
-
-print(f"\nTotal:  {total}")
-print(f"Passed: {passed}")
-print(f"Failed: {failed}")
-print(f"Errors: {errors}")
-
-if failed + errors > 0:
-    print("\nFailing tests:")
-    for t in test_results:
-        if t["status"] != "PASSED":
-            print(f"  [{t['status']}] {t['test']}: {t.get('error', '')}")
-    raise Exception(f"{failed + errors} test(s) did not pass")
-else:
-    print("\nAll tests passed.")
+    def test_invalid_claim_types_detected(self, spark):
+        bad_data = spark.createDataFrame(
+            [("Motor",), ("InvalidType",), ("Health",)],
+            ["claim_type"],
+        )
+        assert validate_claim_types(bad_data) == {"InvalidType"}
