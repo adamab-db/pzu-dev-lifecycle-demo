@@ -34,4 +34,4 @@ databricks bundle run claims_etl_job -t dev
 - **PR to main** → deploys to staging, runs pipeline
 - **Push to main** → deploys to prod, runs pipeline
 
-Requires `SP_CLIENT_ID` and `SP_CLIENT_SECRET` GitHub secrets for a Databricks service principal.
+Requires `SP_CLIENT_ID` and `SP_CLIENT_SECRET` GitHub secrets for a Databricks service principal with account-level OAuth.
