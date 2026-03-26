@@ -23,8 +23,8 @@ jobs:
       - run: databricks bundle deploy
         working-directory: .
         env:
-          DATABRICKS_CLIENT_ID: ${{ secrets.SP_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
           DATABRICKS_BUNDLE_ENV: staging
 
   pipeline_update:
@@ -41,6 +41,6 @@ jobs:
       - run: databricks bundle run claims_etl_job --refresh-all
         working-directory: .
         env:
-          DATABRICKS_CLIENT_ID: ${{ secrets.SP_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
           DATABRICKS_BUNDLE_ENV: staging
