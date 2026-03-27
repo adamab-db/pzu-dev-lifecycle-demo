@@ -1,7 +1,19 @@
 {
+  "datasets": [
+    {
+      "name": "c75462c2",
+      "displayName": "Claims Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  *\n",
+        "FROM\n",
+        "  serverless_stable_379d9b_catalog.dev_claims.claims_silver"
+      ]
+    }
+  ],
   "pages": [
     {
-      "name": "claims_overview",
+      "name": "page1",
       "displayName": "Claims Overview",
       "layout": [
         {
@@ -9,264 +21,757 @@
             "name": "total_claims",
             "queries": [
               {
-                "name": "total_claims_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_summary",
-                  "disaggregated": false,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "total_claims", "expression": "`total_claims`" }
-                  ]
+                    {
+                      "name": "count(claim_id)",
+                      "expression": "COUNT(`claim_id`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 2,
+              "frame": {
+                "title": "Total Claims",
+                "showTitle": true
+              },
               "widgetType": "counter",
               "encodings": {
-                "value": { "fieldName": "total_claims", "displayName": "Total Claims" }
+                "value": {
+                  "fieldName": "count(claim_id)",
+                  "displayName": "Total Claims"
+                }
               }
-            },
-            "displayName": "Total Claims"
+            }
           },
-          "position": { "x": 0, "y": 0, "width": 2, "height": 2 }
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 4
+          }
         },
         {
           "widget": {
-            "name": "total_payout",
+            "name": "total_amount",
             "queries": [
               {
-                "name": "total_payout_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_summary",
-                  "disaggregated": false,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "total_payout", "expression": "`total_payout`" }
-                  ]
+                    {
+                      "name": "sum(claim_amount)",
+                      "expression": "SUM(`claim_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 2,
+              "frame": {
+                "title": "Total Claim Amount",
+                "showTitle": true
+              },
               "widgetType": "counter",
               "encodings": {
-                "value": { "fieldName": "total_payout", "displayName": "Total Payout (PLN)" }
+                "value": {
+                  "fieldName": "sum(claim_amount)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "PLN",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    },
+                    "abbreviation": "compact"
+                  },
+                  "displayName": "Total Amount"
+                }
               }
-            },
-            "displayName": "Total Payout"
+            }
           },
-          "position": { "x": 2, "y": 0, "width": 2, "height": 2 }
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 4
+          }
         },
         {
           "widget": {
-            "name": "avg_processing_days",
+            "name": "avg_processing",
             "queries": [
               {
-                "name": "avg_days_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_summary",
-                  "disaggregated": false,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "avg_days", "expression": "`avg_days`" }
-                  ]
+                    {
+                      "name": "avg(processing_days)",
+                      "expression": "AVG(`processing_days`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 2,
+              "frame": {
+                "title": "Avg Processing Days",
+                "showTitle": true
+              },
               "widgetType": "counter",
               "encodings": {
-                "value": { "fieldName": "avg_days", "displayName": "Avg Processing Days" }
+                "value": {
+                  "fieldName": "avg(processing_days)",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    },
+                    "abbreviation": "none"
+                  },
+                  "displayName": "Avg Processing Days"
+                }
               }
-            },
-            "displayName": "Avg Processing Days"
+            }
           },
-          "position": { "x": 4, "y": 0, "width": 2, "height": 2 }
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 4
+          }
         },
         {
           "widget": {
-            "name": "claims_by_type",
+            "name": "avg_amount",
             "queries": [
               {
-                "name": "claims_by_type_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_by_type",
-                  "disaggregated": true,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "claim_type", "expression": "`claim_type`" },
-                    { "name": "total_claims", "expression": "`total_claims`" },
-                    { "name": "total_payout", "expression": "`total_payout`" }
-                  ]
+                    {
+                      "name": "avg(claim_amount)",
+                      "expression": "AVG(`claim_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Avg Claim Amount",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(claim_amount)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "PLN",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    },
+                    "abbreviation": "compact"
+                  },
+                  "displayName": "Avg Claim Amount"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "claims_by_status",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "c75462c2",
+                  "fields": [
+                    {
+                      "name": "count(claim_id)",
+                      "expression": "COUNT(`claim_id`)"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 3,
-              "widgetType": "bar",
+              "frame": {
+                "title": "Claims by Status",
+                "showTitle": true
+              },
+              "widgetType": "pie",
               "encodings": {
-                "x": { "fieldName": "claim_type", "scale": { "type": "categorical" }, "displayName": "Claim Type" },
-                "y": { "fieldName": "total_payout", "scale": { "type": "quantitative" }, "displayName": "Total Payout (PLN)" }
+                "angle": {
+                  "fieldName": "count(claim_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Claim Count"
+                },
+                "color": {
+                  "fieldName": "status",
+                  "legend": {
+                    "position": "right"
+                  },
+                  "displayName": "Status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
               }
-            },
-            "displayName": "Payouts by Claim Type"
+            }
           },
-          "position": { "x": 0, "y": 2, "width": 3, "height": 4 }
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
             "name": "claims_by_region",
             "queries": [
               {
-                "name": "claims_by_region_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_by_region",
-                  "disaggregated": true,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "region", "expression": "`region`" },
-                    { "name": "total_claims", "expression": "`total_claims`" },
-                    { "name": "avg_days", "expression": "`avg_days`" }
-                  ]
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "count(claim_id)",
+                      "expression": "COUNT(`claim_id`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 3,
+              "frame": {
+                "title": "Claims by Region",
+                "showTitle": true
+              },
               "widgetType": "bar",
               "encodings": {
-                "x": { "fieldName": "region", "scale": { "type": "categorical" }, "displayName": "Region" },
-                "y": { "fieldName": "total_claims", "scale": { "type": "quantitative" }, "displayName": "Claims Count" }
+                "x": {
+                  "fieldName": "region",
+                  "axis": {
+                    "hideTitle": true
+                  },
+                  "displayName": "Region",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "count(claim_id)",
+                  "displayName": "Claim Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
               }
-            },
-            "displayName": "Claims by Region"
+            }
           },
-          "position": { "x": 3, "y": 2, "width": 3, "height": 4 }
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "monthly_trend",
+            "name": "claims_trend",
             "queries": [
               {
-                "name": "monthly_trend_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "monthly_trend",
-                  "disaggregated": true,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "claim_month", "expression": "`claim_month`" },
-                    { "name": "total_amount", "expression": "`total_amount`" }
-                  ]
+                    {
+                      "name": "claim_type",
+                      "expression": "`claim_type`"
+                    },
+                    {
+                      "name": "claim_date",
+                      "expression": "`claim_date`"
+                    },
+                    {
+                      "name": "count(claim_id)",
+                      "expression": "COUNT(`claim_id`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 3,
-              "widgetType": "bar",
+              "frame": {
+                "title": "Claims Over Time",
+                "showTitle": true
+              },
+              "widgetType": "line",
               "encodings": {
-                "x": { "fieldName": "claim_month", "scale": { "type": "temporal" }, "displayName": "Month" },
-                "y": { "fieldName": "total_amount", "scale": { "type": "quantitative" }, "displayName": "Total Amount (PLN)" }
+                "x": {
+                  "fieldName": "claim_date",
+                  "axis": {
+                    "hideTitle": true
+                  },
+                  "displayName": "Claim Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "count(claim_id)",
+                  "displayName": "Claim Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "claim_type",
+                  "legend": {
+                    "position": "bottom"
+                  },
+                  "displayName": "Claim Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
               }
-            },
-            "displayName": "Monthly Claims Trend"
+            }
           },
-          "position": { "x": 0, "y": 6, "width": 6, "height": 4 }
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "status_distribution",
+            "name": "claims_by_type",
             "queries": [
               {
-                "name": "status_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "claims_by_status",
-                  "disaggregated": true,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "status", "expression": "`status`" },
-                    { "name": "count", "expression": "`count`" }
-                  ]
+                    {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
+                      "name": "claim_type",
+                      "expression": "`claim_type`"
+                    },
+                    {
+                      "name": "count(claim_id)",
+                      "expression": "COUNT(`claim_id`)"
+                    }
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 3,
+              "frame": {
+                "title": "Claims by Type & Priority",
+                "showTitle": true
+              },
               "widgetType": "bar",
               "encodings": {
-                "x": { "fieldName": "status", "scale": { "type": "categorical" }, "displayName": "Status" },
-                "y": { "fieldName": "count", "scale": { "type": "quantitative" }, "displayName": "Count" }
+                "x": {
+                  "fieldName": "claim_type",
+                  "axis": {
+                    "hideTitle": true
+                  },
+                  "displayName": "Claim Type",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "count(claim_id)",
+                  "displayName": "Claim Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "priority",
+                  "legend": {
+                    "position": "bottom"
+                  },
+                  "displayName": "Priority",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
               }
-            },
-            "displayName": "Claims by Status"
+            }
           },
-          "position": { "x": 0, "y": 10, "width": 3, "height": 4 }
+          "position": {
+            "x": 6,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "high_value_table",
+            "name": "claims_table",
             "queries": [
               {
-                "name": "high_value_query",
+                "name": "main_query",
                 "query": {
-                  "datasetName": "high_value_claims",
-                  "disaggregated": true,
+                  "datasetName": "c75462c2",
                   "fields": [
-                    { "name": "claim_id", "expression": "`claim_id`" },
-                    { "name": "customer_name", "expression": "`customer_name`" },
-                    { "name": "claim_type", "expression": "`claim_type`" },
-                    { "name": "claim_amount", "expression": "`claim_amount`" },
-                    { "name": "region", "expression": "`region`" },
-                    { "name": "status", "expression": "`status`" }
-                  ]
+                    {
+                      "name": "claim_id",
+                      "expression": "`claim_id`"
+                    },
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    },
+                    {
+                      "name": "claim_type",
+                      "expression": "`claim_type`"
+                    },
+                    {
+                      "name": "claim_amount",
+                      "expression": "`claim_amount`"
+                    },
+                    {
+                      "name": "claim_date",
+                      "expression": "`claim_date`"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
+                      "name": "processing_days",
+                      "expression": "`processing_days`"
+                    }
+                  ],
+                  "disaggregated": true
                 }
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 2,
+              "frame": {
+                "title": "Recent Claims Detail",
+                "showTitle": true
+              },
+              "rowsPerPage": 25,
               "widgetType": "table",
               "encodings": {
                 "columns": [
-                  { "fieldName": "claim_id", "displayName": "Claim ID" },
-                  { "fieldName": "customer_name", "displayName": "Customer" },
-                  { "fieldName": "claim_type", "displayName": "Type" },
-                  { "fieldName": "claim_amount", "displayName": "Amount (PLN)" },
-                  { "fieldName": "region", "displayName": "Region" },
-                  { "fieldName": "status", "displayName": "Status" }
+                  {
+                    "fieldName": "claim_id",
+                    "displayName": "Claim ID"
+                  },
+                  {
+                    "fieldName": "customer_name",
+                    "displayName": "Customer"
+                  },
+                  {
+                    "fieldName": "claim_type",
+                    "displayName": "Type"
+                  },
+                  {
+                    "fieldName": "claim_amount",
+                    "displayName": "Amount"
+                  },
+                  {
+                    "fieldName": "claim_date",
+                    "displayName": "Date"
+                  },
+                  {
+                    "fieldName": "region",
+                    "displayName": "Region"
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "Status",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Paid"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": "#E6F4EA",
+                          "foregroundColor": "#137333"
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Rejected"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": "#FCE8E6",
+                          "foregroundColor": "#C5221F"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "priority",
+                    "displayName": "Priority",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Critical"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": "#FCE8E6",
+                          "foregroundColor": "#C5221F"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "processing_days",
+                    "displayName": "Processing Days"
+                  }
                 ]
               }
-            },
-            "displayName": "High-Value Claims (>100k PLN)"
+            }
           },
-          "position": { "x": 3, "y": 10, "width": 3, "height": 4 }
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 12,
+            "height": 7
+          }
         }
-      ]
-    }
-  ],
-  "datasets": [
-    {
-      "name": "claims_summary",
-      "displayName": "Claims Summary",
-      "query": "SELECT SUM(claim_count) AS total_claims, ROUND(SUM(total_amount), 2) AS total_payout, ROUND(AVG(avg_processing_days), 1) AS avg_days FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold"
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
     },
     {
-      "name": "claims_by_type",
-      "displayName": "Claims by Type",
-      "query": "SELECT claim_type, SUM(claim_count) AS total_claims, ROUND(SUM(total_amount), 2) AS total_payout FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY claim_type ORDER BY total_payout DESC"
-    },
-    {
-      "name": "claims_by_region",
-      "displayName": "Claims by Region",
-      "query": "SELECT region, SUM(claim_count) AS total_claims, ROUND(AVG(avg_processing_days), 1) AS avg_days FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY region ORDER BY total_claims DESC"
-    },
-    {
-      "name": "monthly_trend",
-      "displayName": "Monthly Trend",
-      "query": "SELECT claim_month, SUM(total_amount) AS total_amount FROM serverless_stable_379d9b_catalog.dev_claims.claims_monthly_trend GROUP BY claim_month ORDER BY claim_month"
-    },
-    {
-      "name": "claims_by_status",
-      "displayName": "Claims by Status",
-      "query": "SELECT status, SUM(claim_count) AS count FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY status ORDER BY count DESC"
-    },
-    {
-      "name": "high_value_claims",
-      "displayName": "High Value Claims",
-      "query": "SELECT claim_id, customer_name, claim_type, claim_amount, region, status FROM serverless_stable_379d9b_catalog.dev_claims.claims_high_value WHERE status IN ('Open', 'In Review') ORDER BY claim_amount DESC LIMIT 20"
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "region_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_region",
+                "query": {
+                  "datasetName": "c75462c2",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "region_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Region",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "region",
+                    "queryName": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_region"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "status_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_status",
+                "query": {
+                  "datasetName": "c75462c2",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "status_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Status",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "status",
+                    "queryName": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_status"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "type_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_claim_type",
+                "query": {
+                  "datasetName": "c75462c2",
+                  "fields": [
+                    {
+                      "name": "claim_type",
+                      "expression": "`claim_type`"
+                    },
+                    {
+                      "name": "claim_type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Claim Type",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "claim_type",
+                    "queryName": "dashboards/01f129d055b018f6aa6e2822bfd16267/datasets/01f129d0b37e1e1ca24b55a3b8d427f8_claim_type"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
     }
   ]
 }
