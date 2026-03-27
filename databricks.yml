@@ -28,6 +28,8 @@ targets:
     workspace:
       host: https://fevm-serverless-stable-379d9b.cloud.databricks.com
       root_path: /Users/adam.aboode@databricks.com/.bundle/${bundle.name}/prod
+    # run_as:
+    #   service_principal_name: 2a8b80b6-e472-4268-844b-e39082deb93e
 
 permissions:
   - user_name: adam.aboode@databricks.com
