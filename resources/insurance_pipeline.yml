@@ -7,6 +7,8 @@ resources:
       libraries:
         - notebook:
             path: ../src/pipelines/claims_pipeline.sql
+        - notebook:
+            path: ../src/pipelines/claims_risk_scoring.py
       continuous: false
       channel: PREVIEW
       photon: true
