@@ -1,0 +1,11 @@
+[project]
+name = "pzu-dev-lifecycle-demo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "databricks-connect>=16.1.7",
+    "faker>=40.11.0",
+    "pytest>=9.0.2",
+]
