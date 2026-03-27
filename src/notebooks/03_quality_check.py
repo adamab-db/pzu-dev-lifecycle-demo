@@ -1,9 +1,17 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Post-Pipeline Quality Check
+# MAGIC # Data Quality Check with DQX
 # MAGIC
-# MAGIC Validates data quality after the SDP pipeline completes.
-# MAGIC Acts as an additional quality gate before downstream consumption.
+# MAGIC Uses [Databricks Labs DQX](https://databrickslabs.github.io/dqx/) to validate
+# MAGIC claims data after the pipeline runs. Demonstrates:
+# MAGIC - Defining quality rules as code
+# MAGIC - Applying checks with valid/invalid split (dead-letter pattern)
+# MAGIC - Saving quarantined records for review
+
+# COMMAND ----------
+
+# MAGIC %pip install databricks-labs-dqx
+# MAGIC %restart_python
 
 # COMMAND ----------
 
@@ -16,166 +24,132 @@ schema = dbutils.widgets.get("schema")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Quality Checks
+# MAGIC ## Define Quality Rules
 
 # COMMAND ----------
 
-results = []
+from databricks.labs.dqx import check_funcs
+from databricks.labs.dqx.engine import DQEngine
+from databricks.labs.dqx.rule import DQRowRule, DQDatasetRule
+from databricks.sdk import WorkspaceClient
 
-def check(name, condition, message):
-    status = "PASS" if condition else "FAIL"
-    results.append({"check": name, "status": status, "detail": message})
-    print(f"  [{status}] {name}: {message}")
+dq_engine = DQEngine(WorkspaceClient())
 
-# COMMAND ----------
+checks = [
+    # Completeness checks
+    DQRowRule(
+        name="claim_id_not_null",
+        criticality="error",
+        check_func=check_funcs.is_not_null,
+        column="claim_id",
+    ),
+    DQRowRule(
+        name="region_not_null",
+        criticality="error",
+        check_func=check_funcs.is_not_null,
+        column="region",
+    ),
+    DQRowRule(
+        name="claim_date_not_null",
+        criticality="error",
+        check_func=check_funcs.is_not_null,
+        column="claim_date",
+    ),
+    # Validity checks
+    DQRowRule(
+        name="positive_claim_amount",
+        criticality="error",
+        check_func=check_funcs.is_in_range,
+        column="claim_amount",
+        check_func_kwargs={"min_limit": 0.01, "max_limit": 10_000_000},
+    ),
+    DQRowRule(
+        name="valid_claim_type",
+        criticality="error",
+        check_func=check_funcs.is_in_list,
+        column="claim_type",
+        check_func_kwargs={"allowed": ["Motor", "Property", "Health", "Life", "Travel", "Liability"]},
+    ),
+    DQRowRule(
+        name="valid_region",
+        criticality="warn",
+        check_func=check_funcs.is_in_list,
+        column="region",
+        check_func_kwargs={"allowed": [
+            "Mazowieckie", "Malopolskie", "Slaskie", "Wielkopolskie",
+            "Dolnoslaskie", "Pomorskie", "Lodzkie", "Lubelskie",
+        ]},
+    ),
+    DQRowRule(
+        name="non_negative_processing_days",
+        criticality="warn",
+        check_func=check_funcs.is_in_range,
+        column="processing_days",
+        check_func_kwargs={"min_limit": 0, "max_limit": 365},
+    ),
+    # Uniqueness check
+    DQDatasetRule(
+        name="claim_id_unique",
+        criticality="error",
+        check_func=check_funcs.is_unique,
+        columns=["claim_id"],
+    ),
+]
 
-# MAGIC %md
-# MAGIC ### Bronze Layer Checks
-
-# COMMAND ----------
-
-print("=" * 60)
-print("BRONZE LAYER")
-print("=" * 60)
-
-bronze_count = spark.table(f"{catalog}.{schema}.claims_bronze").count()
-check(
-    "Bronze row count",
-    bronze_count > 0,
-    f"{bronze_count} rows"
-)
-
-bronze_nulls = spark.sql(f"""
-    SELECT COUNT(*) AS cnt
-    FROM {catalog}.{schema}.claims_bronze
-    WHERE claim_id IS NULL
-""").collect()[0]["cnt"]
-check(
-    "Bronze no null claim_ids",
-    bronze_nulls == 0,
-    f"{bronze_nulls} null claim_ids found"
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Silver Layer Checks
-
-# COMMAND ----------
-
-print("=" * 60)
-print("SILVER LAYER")
-print("=" * 60)
-
-silver_count = spark.table(f"{catalog}.{schema}.claims_silver").count()
-check(
-    "Silver row count",
-    silver_count > 0,
-    f"{silver_count} rows (from {bronze_count} bronze)"
-)
-
-check(
-    "Silver no data loss > 5%",
-    silver_count >= bronze_count * 0.95,
-    f"Retention: {silver_count / bronze_count * 100:.1f}%"
-)
-
-negative_days = spark.sql(f"""
-    SELECT COUNT(*) AS cnt
-    FROM {catalog}.{schema}.claims_silver
-    WHERE processing_days < 0
-""").collect()[0]["cnt"]
-check(
-    "Silver no negative processing_days",
-    negative_days == 0,
-    f"{negative_days} negative values"
-)
-
-null_regions = spark.sql(f"""
-    SELECT COUNT(*) AS cnt
-    FROM {catalog}.{schema}.claims_silver
-    WHERE region IS NULL
-""").collect()[0]["cnt"]
-check(
-    "Silver no null regions",
-    null_regions == 0,
-    f"{null_regions} null regions (should be dropped by expectation)"
-)
+print(f"Defined {len(checks)} quality rules")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Gold Layer Checks
+# MAGIC ## Apply Checks with Valid/Invalid Split
 
 # COMMAND ----------
 
-print("=" * 60)
-print("GOLD LAYER")
-print("=" * 60)
+silver_df = spark.table(f"{catalog}.{schema}.claims_silver")
+print(f"Silver table rows: {silver_df.count()}")
 
-gold_count = spark.table(f"{catalog}.{schema}.claims_gold").count()
-check(
-    "Gold summary populated",
-    gold_count > 0,
-    f"{gold_count} aggregation rows"
-)
+valid_df, invalid_df = dq_engine.apply_checks_and_split(silver_df, checks)
 
-trend_count = spark.table(f"{catalog}.{schema}.claims_monthly_trend").count()
-check(
-    "Monthly trend populated",
-    trend_count > 0,
-    f"{trend_count} monthly data points"
-)
+valid_count = valid_df.count()
+invalid_count = invalid_df.count()
 
-high_value_count = spark.table(f"{catalog}.{schema}.claims_high_value").count()
-check(
-    "High-value claims populated",
-    high_value_count >= 0,
-    f"{high_value_count} claims over 100k"
-)
-
-# Verify gold amounts reconcile with silver
-gold_total = spark.sql(f"""
-    SELECT ROUND(SUM(total_amount), 2) AS total
-    FROM {catalog}.{schema}.claims_gold
-""").collect()[0]["total"]
-
-silver_total = spark.sql(f"""
-    SELECT ROUND(SUM(claim_amount), 2) AS total
-    FROM {catalog}.{schema}.claims_silver
-""").collect()[0]["total"]
-
-check(
-    "Gold-Silver amount reconciliation",
-    abs(gold_total - silver_total) < 1.0,
-    f"Gold: {gold_total}, Silver: {silver_total}, Diff: {abs(gold_total - silver_total)}"
-)
+print(f"Valid rows:   {valid_count}")
+print(f"Invalid rows: {invalid_count}")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Quality Report Summary
+# MAGIC ## Inspect Quarantined Records
 
 # COMMAND ----------
 
-print("\n" + "=" * 60)
-print("QUALITY REPORT SUMMARY")
-print("=" * 60)
-
-passed = sum(1 for r in results if r["status"] == "PASS")
-failed = sum(1 for r in results if r["status"] == "FAIL")
-total = len(results)
-
-print(f"\nTotal checks: {total}")
-print(f"Passed:       {passed}")
-print(f"Failed:       {failed}")
-print(f"Score:        {passed}/{total} ({passed/total*100:.0f}%)")
-
-if failed > 0:
-    print("\nFAILED CHECKS:")
-    for r in results:
-        if r["status"] == "FAIL":
-            print(f"  - {r['check']}: {r['detail']}")
-    raise Exception(f"Quality check failed: {failed}/{total} checks did not pass")
+if invalid_count > 0:
+    print("Sample quarantined records:")
+    invalid_df.select("claim_id", "claim_type", "region", "claim_amount", "_error", "_warning").show(10, truncate=False)
 else:
-    print("\nAll quality checks passed.")
+    print("No quarantined records — all data passed quality checks.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Save Results
+
+# COMMAND ----------
+
+# Save valid records
+(
+    valid_df.drop("_warning", "_error")
+    .write.mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable(f"{catalog}.{schema}.claims_validated")
+)
+print(f"Saved {valid_count} valid records to {catalog}.{schema}.claims_validated")
+
+# Save quarantined records for review
+if invalid_count > 0:
+    (
+        invalid_df.write.mode("overwrite")
+        .option("overwriteSchema", "true")
+        .saveAsTable(f"{catalog}.{schema}.claims_quarantine")
+    )
+    print(f"Saved {invalid_count} quarantined records to {catalog}.{schema}.claims_quarantine")

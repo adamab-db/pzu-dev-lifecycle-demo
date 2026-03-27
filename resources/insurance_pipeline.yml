@@ -59,6 +59,7 @@ resources:
             client: "1"
             dependencies:
               - faker
+              - databricks-labs-dqx
 
     run_tests:
       name: "PZU Run Tests"
