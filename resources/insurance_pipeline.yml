@@ -1,11 +1,4 @@
 resources:
-  dashboards:
-    claims_dashboard:
-      display_name: "PZU Claims Overview"
-      file_path: ../src/dashboards/claims_overview.lvdash.json
-      warehouse_id: 09ce8e86121b6fb6
-      embed_credentials: false
-
   pipelines:
     insurance_pipeline:
       name: "PZU Insurance Claims Pipeline"
