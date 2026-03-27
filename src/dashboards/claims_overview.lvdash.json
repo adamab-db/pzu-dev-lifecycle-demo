@@ -1,0 +1,272 @@
+{
+  "pages": [
+    {
+      "name": "claims_overview",
+      "displayName": "Claims Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "total_claims",
+            "queries": [
+              {
+                "name": "total_claims_query",
+                "query": {
+                  "datasetName": "claims_summary",
+                  "disaggregated": false,
+                  "fields": [
+                    { "name": "total_claims", "expression": "`total_claims`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_claims", "displayName": "Total Claims" }
+              }
+            },
+            "displayName": "Total Claims"
+          },
+          "position": { "x": 0, "y": 0, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "total_payout",
+            "queries": [
+              {
+                "name": "total_payout_query",
+                "query": {
+                  "datasetName": "claims_summary",
+                  "disaggregated": false,
+                  "fields": [
+                    { "name": "total_payout", "expression": "`total_payout`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_payout", "displayName": "Total Payout (PLN)" }
+              }
+            },
+            "displayName": "Total Payout"
+          },
+          "position": { "x": 2, "y": 0, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "avg_processing_days",
+            "queries": [
+              {
+                "name": "avg_days_query",
+                "query": {
+                  "datasetName": "claims_summary",
+                  "disaggregated": false,
+                  "fields": [
+                    { "name": "avg_days", "expression": "`avg_days`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "avg_days", "displayName": "Avg Processing Days" }
+              }
+            },
+            "displayName": "Avg Processing Days"
+          },
+          "position": { "x": 4, "y": 0, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "claims_by_type",
+            "queries": [
+              {
+                "name": "claims_by_type_query",
+                "query": {
+                  "datasetName": "claims_by_type",
+                  "disaggregated": true,
+                  "fields": [
+                    { "name": "claim_type", "expression": "`claim_type`" },
+                    { "name": "total_claims", "expression": "`total_claims`" },
+                    { "name": "total_payout", "expression": "`total_payout`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "claim_type", "scale": { "type": "categorical" }, "displayName": "Claim Type" },
+                "y": { "fieldName": "total_payout", "scale": { "type": "quantitative" }, "displayName": "Total Payout (PLN)" }
+              }
+            },
+            "displayName": "Payouts by Claim Type"
+          },
+          "position": { "x": 0, "y": 2, "width": 3, "height": 4 }
+        },
+        {
+          "widget": {
+            "name": "claims_by_region",
+            "queries": [
+              {
+                "name": "claims_by_region_query",
+                "query": {
+                  "datasetName": "claims_by_region",
+                  "disaggregated": true,
+                  "fields": [
+                    { "name": "region", "expression": "`region`" },
+                    { "name": "total_claims", "expression": "`total_claims`" },
+                    { "name": "avg_days", "expression": "`avg_days`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "region", "scale": { "type": "categorical" }, "displayName": "Region" },
+                "y": { "fieldName": "total_claims", "scale": { "type": "quantitative" }, "displayName": "Claims Count" }
+              }
+            },
+            "displayName": "Claims by Region"
+          },
+          "position": { "x": 3, "y": 2, "width": 3, "height": 4 }
+        },
+        {
+          "widget": {
+            "name": "monthly_trend",
+            "queries": [
+              {
+                "name": "monthly_trend_query",
+                "query": {
+                  "datasetName": "monthly_trend",
+                  "disaggregated": true,
+                  "fields": [
+                    { "name": "claim_month", "expression": "`claim_month`" },
+                    { "name": "total_amount", "expression": "`total_amount`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "claim_month", "scale": { "type": "temporal" }, "displayName": "Month" },
+                "y": { "fieldName": "total_amount", "scale": { "type": "quantitative" }, "displayName": "Total Amount (PLN)" }
+              }
+            },
+            "displayName": "Monthly Claims Trend"
+          },
+          "position": { "x": 0, "y": 6, "width": 6, "height": 4 }
+        },
+        {
+          "widget": {
+            "name": "status_distribution",
+            "queries": [
+              {
+                "name": "status_query",
+                "query": {
+                  "datasetName": "claims_by_status",
+                  "disaggregated": true,
+                  "fields": [
+                    { "name": "status", "expression": "`status`" },
+                    { "name": "count", "expression": "`count`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "status", "scale": { "type": "categorical" }, "displayName": "Status" },
+                "y": { "fieldName": "count", "scale": { "type": "quantitative" }, "displayName": "Count" }
+              }
+            },
+            "displayName": "Claims by Status"
+          },
+          "position": { "x": 0, "y": 10, "width": 3, "height": 4 }
+        },
+        {
+          "widget": {
+            "name": "high_value_table",
+            "queries": [
+              {
+                "name": "high_value_query",
+                "query": {
+                  "datasetName": "high_value_claims",
+                  "disaggregated": true,
+                  "fields": [
+                    { "name": "claim_id", "expression": "`claim_id`" },
+                    { "name": "customer_name", "expression": "`customer_name`" },
+                    { "name": "claim_type", "expression": "`claim_type`" },
+                    { "name": "claim_amount", "expression": "`claim_amount`" },
+                    { "name": "region", "expression": "`region`" },
+                    { "name": "status", "expression": "`status`" }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "claim_id", "displayName": "Claim ID" },
+                  { "fieldName": "customer_name", "displayName": "Customer" },
+                  { "fieldName": "claim_type", "displayName": "Type" },
+                  { "fieldName": "claim_amount", "displayName": "Amount (PLN)" },
+                  { "fieldName": "region", "displayName": "Region" },
+                  { "fieldName": "status", "displayName": "Status" }
+                ]
+              }
+            },
+            "displayName": "High-Value Claims (>100k PLN)"
+          },
+          "position": { "x": 3, "y": 10, "width": 3, "height": 4 }
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "name": "claims_summary",
+      "displayName": "Claims Summary",
+      "query": "SELECT SUM(claim_count) AS total_claims, ROUND(SUM(total_amount), 2) AS total_payout, ROUND(AVG(avg_processing_days), 1) AS avg_days FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold"
+    },
+    {
+      "name": "claims_by_type",
+      "displayName": "Claims by Type",
+      "query": "SELECT claim_type, SUM(claim_count) AS total_claims, ROUND(SUM(total_amount), 2) AS total_payout FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY claim_type ORDER BY total_payout DESC"
+    },
+    {
+      "name": "claims_by_region",
+      "displayName": "Claims by Region",
+      "query": "SELECT region, SUM(claim_count) AS total_claims, ROUND(AVG(avg_processing_days), 1) AS avg_days FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY region ORDER BY total_claims DESC"
+    },
+    {
+      "name": "monthly_trend",
+      "displayName": "Monthly Trend",
+      "query": "SELECT claim_month, SUM(total_amount) AS total_amount FROM serverless_stable_379d9b_catalog.dev_claims.claims_monthly_trend GROUP BY claim_month ORDER BY claim_month"
+    },
+    {
+      "name": "claims_by_status",
+      "displayName": "Claims by Status",
+      "query": "SELECT status, SUM(claim_count) AS count FROM serverless_stable_379d9b_catalog.dev_claims.claims_gold GROUP BY status ORDER BY count DESC"
+    },
+    {
+      "name": "high_value_claims",
+      "displayName": "High Value Claims",
+      "query": "SELECT claim_id, customer_name, claim_type, claim_amount, region, status FROM serverless_stable_379d9b_catalog.dev_claims.claims_high_value WHERE status IN ('Open', 'In Review') ORDER BY claim_amount DESC LIMIT 20"
+    }
+  ]
+}
